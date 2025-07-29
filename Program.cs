@@ -13,66 +13,42 @@ namespace ResumeParser
     {
         static void Main(string[] args)
         {
+            // Things I can improve:
+            // Add context -> save all inputs and outputs to prompt
+
             HttpClient client = new HttpClient();
 
-            string apiKey = string.Empty;
-            string model = "gpt-4.1-nano";
-            string uri = "chat/completions";
-            string prompt = "Summarize the following job applicaton: ";
             string pdfContent = string.Empty;
             string userPrompt = string.Empty;
-            string chatComplID = string.Empty;
 
-            FileHandler fhandler = new FileHandler();
+            FileHandler fHandler = new FileHandler();
+            AIHandler aiHandler = new AIHandler();
+            HTTPHandler httpHandler = new HTTPHandler();
+
+            aiHandler.Model = "gpt-4.1-nano";
+            aiHandler.Uri = "chat/completions";
+            aiHandler.Prompt = "Summarize the following job applicaton: ";
+            aiHandler.BaseURI = new Uri("https://api.openai.com/v1/");
 
             Console.Write("Enter api key: ");
-            apiKey = Console.ReadLine();
+            aiHandler.ApiKey = Console.ReadLine();
 
-            client.BaseAddress = new Uri("https://api.openai.com/v1/");
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+            client = httpHandler.CreateClient(aiHandler.BaseURI, new AuthenticationHeaderValue("Bearer", aiHandler.ApiKey));
 
             Console.Clear();
 
             Console.Write("Enter path to job application (pdf): ");
-            prompt += fhandler.GetResumeFile(Console.ReadLine());
+            pdfContent = fHandler.GetResumeFile(Console.ReadLine());
 
             Console.Clear();
 
-            
-
             do
             {
-                if (userPrompt != string.Empty)
-                {
-                    prompt = "Job Application: " + pdfContent + " " + userPrompt;
-                }
-
-                var requestBody = new
-                {
-                    model = model,
-                    messages = new[]
-                    {
-                        new { role = "user", content = prompt }
-                    },
-                    store = true
-                };
-
-                StringContent content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-                System.Threading.Tasks.Task<HttpResponseMessage> response = client.PostAsync(uri, content);
-
-                if (response != null)
-                {
-                    string responseString = response.Result.Content.ReadAsStringAsync().Result;
-
-                    JObject data = (JObject)JsonConvert.DeserializeObject(responseString);
-                    string message = data["choices"].First()["message"]["content"].ToString();
-
-                    Console.WriteLine(message);
-                }
+                Console.WriteLine(httpHandler.PostPrompt(aiHandler, client, userPrompt, pdfContent));
 
                 Console.Write("> ");
                 userPrompt = Console.ReadLine();
+                Console.WriteLine();
 
             } while (userPrompt != string.Empty);
 
