@@ -15,6 +15,7 @@ namespace ResumeParser
         {
             // Things I can improve:
             // Add context -> save all inputs and outputs to prompt
+            // Add support for other file types txt doc docx odf xls xlsx maybe even csv
 
             HttpClient client = new HttpClient();
 
