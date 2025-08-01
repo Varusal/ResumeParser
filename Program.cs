@@ -19,7 +19,7 @@ namespace ResumeParser
 
             HttpClient client = new HttpClient();
 
-            string pdfContent = string.Empty;
+            string fileContent = string.Empty;
             string userPrompt = string.Empty;
 
             FileHandler fHandler = new FileHandler();
@@ -38,14 +38,14 @@ namespace ResumeParser
 
             Console.Clear();
 
-            Console.Write("Enter path to job application (pdf): ");
-            pdfContent = fHandler.GetResumeFile(Console.ReadLine());
+            Console.Write("Enter path to job application: ");
+            fileContent = fHandler.GetResumeFile(Console.ReadLine());
 
             Console.Clear();
 
             do
             {
-                Console.WriteLine(httpHandler.PostPrompt(aiHandler, client, userPrompt, pdfContent));
+                Console.WriteLine(httpHandler.PostPrompt(aiHandler, client, userPrompt, fileContent));
 
                 Console.Write("> ");
                 userPrompt = Console.ReadLine();
