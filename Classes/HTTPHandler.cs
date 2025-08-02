@@ -1,21 +1,25 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace ResumeParser.Classes
 {
     internal class HTTPHandler
     {
-        
+        private string message;
+        private string conversation;
+        private bool requestError;
+        public bool RequestError
+        {
+            get { return requestError; }
+            set { requestError = value; }
+        }
         public HTTPHandler()
         {
-
+            message = string.Empty;
+            conversation = string.Empty;
+            RequestError = false;
         }
 
         public HttpClient CreateClient(Uri baseURI, AuthenticationHeaderValue headerValue)
@@ -27,16 +31,18 @@ namespace ResumeParser.Classes
             return httpClient;
         }
 
-        public string PostPrompt(AIHandler aiHandler,HttpClient client, string userPrompt, string pdfContent)
+        public string PostPrompt(AIHandler aiHandler, HttpClient client, string userPrompt, string pdfContent)
         {
-            string message = string.Empty;
             if (userPrompt != string.Empty)
             {
-                aiHandler.Prompt = "Job Application: " + pdfContent + " " + userPrompt;
+                aiHandler.Prompt = "Job Application: " + pdfContent + " Previous reply from chatgpt model: " + conversation + " New prompt: " + userPrompt;
             }
             else
             {
+                message = string.Empty;
                 aiHandler.Prompt += pdfContent;
+
+                conversation += " " + aiHandler.Prompt;
             }
 
             var requestBody = new
@@ -58,11 +64,21 @@ namespace ResumeParser.Classes
                 string responseString = response.Result.Content.ReadAsStringAsync().Result;
 
                 JObject data = (JObject)JsonConvert.DeserializeObject(responseString);
-                message = data["choices"].First()["message"]["content"].ToString();
-
-                //Console.WriteLine(message);
+                try
+                {
+                    message = data["choices"].First()["message"]["content"].ToString();
+                    conversation += " " + message;
+                    RequestError = false;
+                }
+                catch (Exception ex)
+                {
+                    message = data["error"]["message"].ToString();
+                    RequestError = true;
+                }
             }
+
             return message;
+
         }
     }
 }

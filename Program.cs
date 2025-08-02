@@ -1,26 +1,19 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using ResumeParser.Classes;
+﻿using ResumeParser.Classes;
 using System.Net.Http.Headers;
-using System.Reflection.Metadata;
-using System.Text;
-using UglyToad.PdfPig;
-using UglyToad.PdfPig.Content;
 
 namespace ResumeParser
 {
     internal class Program
     {
+        // Todo: Add menu options
         static void Main(string[] args)
         {
-            // Things I can improve:
-            // Add context -> save all inputs and outputs to prompt
-            // Add support for other file types txt doc docx odf xls xlsx
-
             HttpClient client = new HttpClient();
 
             string fileContent = string.Empty;
             string userPrompt = string.Empty;
+            bool filePathCorrect = false;
+            bool fileExists = false;
 
             FileHandler fHandler = new FileHandler();
             AIHandler aiHandler = new AIHandler();
@@ -31,15 +24,50 @@ namespace ResumeParser
             aiHandler.Prompt = "Summarize the following job applicaton: ";
             aiHandler.BaseURI = new Uri("https://api.openai.com/v1/");
 
-            Console.Write("Enter api key: ");
-            aiHandler.ApiKey = Console.ReadLine();
+            do
+            {
+                Console.Write("Enter api key: ");
+                aiHandler.ApiKey = Console.ReadLine();
+                if (string.IsNullOrEmpty(aiHandler.ApiKey))
+                {
+                    Console.WriteLine("API key cannot be empty. Please try again.");
+                    Console.WriteLine();
+                }
+            } while (string.IsNullOrEmpty(aiHandler.ApiKey));
 
             client = httpHandler.CreateClient(aiHandler.BaseURI, new AuthenticationHeaderValue("Bearer", aiHandler.ApiKey));
 
             Console.Clear();
 
-            Console.Write("Enter path to job application: ");
-            fileContent = fHandler.GetResumeFile(Console.ReadLine());
+            do
+            {
+                Console.Write("Enter path to job application: ");
+                string filePath = Console.ReadLine();
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    Console.WriteLine("File path cannot be empty. Please try again.");
+                    Console.WriteLine();
+                    filePathCorrect = false;
+                }
+                else
+                {
+                    filePathCorrect = true;
+
+                    if (File.Exists(filePath))
+                    {
+                        fileExists = true;
+                        fileContent = fHandler.GetResumeFile(filePath);
+                    }
+                    else
+                    {
+                        Console.WriteLine("File does not exist. Please try again.");
+                        Console.WriteLine();
+                        fileExists = false;
+                    }
+                }
+
+            } while (!filePathCorrect || !fileExists);
 
             Console.Clear();
 
@@ -47,11 +75,14 @@ namespace ResumeParser
             {
                 Console.WriteLine(httpHandler.PostPrompt(aiHandler, client, userPrompt, fileContent));
 
-                Console.Write("> ");
-                userPrompt = Console.ReadLine();
-                Console.WriteLine();
+                if (!httpHandler.RequestError)
+                {
+                    Console.Write("> ");
+                    userPrompt = Console.ReadLine();
+                    Console.WriteLine();
+                }
 
-            } while (userPrompt != string.Empty);
+            } while (!string.IsNullOrEmpty(userPrompt));
 
             Console.Write("Press any key to exit...");
             Console.ReadLine();

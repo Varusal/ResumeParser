@@ -1,13 +1,6 @@
-﻿using AODL.Document.Content.Text;
-using AODL.Document.TextDocuments;
-using NPOI.XWPF.Extractor;
+﻿using NPOI.XWPF.Extractor;
 using NPOI.XWPF.UserModel;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO.Compression;
 using System.Xml;
 using UglyToad.PdfPig;
 using UglyToad.PdfPig.Content;
@@ -71,6 +64,7 @@ namespace ResumeParser.Classes
                 Page pdfPage = pdfDoc.GetPage(i);
                 fileContent += pdfPage.Text;
             }
+            pdfDoc.Dispose();
         }
 
         private void ReadTXT()
@@ -90,12 +84,18 @@ namespace ResumeParser.Classes
 
         private void ReadOpenDOC()
         {
-            // THIS DOES NOT WORK
-            TextDocument doc = new TextDocument();
-            doc.Load(filePath);
-            foreach (var content in doc.Content)
+            ZipArchive zip = ZipFile.OpenRead(filePath);
+            foreach (ZipArchiveEntry entry in zip.Entries)
             {
-                fileContent += content;
+                if (entry.FullName == "content.xml")
+                {
+                    StreamReader reader = new StreamReader(entry.Open());
+                    XmlDocument xmlDoc = new XmlDocument();
+                    xmlDoc.Load(reader);
+                    fileContent += xmlDoc.InnerText;
+                    reader.Close();
+                    break;
+                }
             }
         }
     }
